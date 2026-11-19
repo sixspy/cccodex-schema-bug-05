@@ -8,7 +8,10 @@ from app.config import Config
 from app.db import init_db
 from app.services import (
     apply_contract,
+    enum_waterline,
+    get_contract_detail,
     list_contracts,
+    list_enum_snapshots,
     list_reports,
     run_breaking_check,
     run_reconcile,
@@ -36,11 +39,14 @@ def create_app(db_path: str | None = None) -> web.Application:
     app.router.add_post("/api/login", api_login)
     app.router.add_post("/api/logout", api_logout)
     app.router.add_get("/api/meta", api_meta)
+    app.router.add_get("/api/enums", api_enums)
     app.router.add_get("/api/contracts", api_contracts)
+    app.router.add_get("/api/contracts/{cid}", api_contract_detail)
     app.router.add_post("/api/contracts/{cid}/breaking-check", api_breaking)
     app.router.add_post("/api/contracts/{cid}/apply", api_apply)
     app.router.add_get("/api/reconcile-reports", api_reports)
     app.router.add_post("/api/reconcile-reports", api_reconcile)
+    app.router.add_get("/api/enum-waterline", api_waterline)
     return app
 
 
@@ -111,16 +117,39 @@ async def api_logout(_request: web.Request):
 async def api_meta(request: web.Request):
     try:
         require_user(request)
+        db_path = request.app.get("db_path")
+        return json_resp({
+            "lab": Config.LAB_NAME,
+            "product": "cc-schema-lab",
+            "page_enum_status": page_enum("status", db_path),
+            "contract_enum_status": contract_enum("status", db_path),
+            "accept_NEW": accept_value("status", "NEW", db_path),
+            "accept_CANCEL": accept_value("status", "CANCEL", db_path),
+        })
     except ServiceError as exc:
         return json_resp({"error": exc.message}, exc.status_code)
-    return json_resp({
-        "lab": Config.LAB_NAME,
-        "product": "cc-schema-lab",
-        "page_enum_status": page_enum("status"),
-        "contract_enum_status": contract_enum("status"),
-        "accept_NEW": accept_value("status", "NEW"),
-        "accept_CANCEL": accept_value("status", "CANCEL"),
-    })
+
+
+async def api_enums(request: web.Request):
+    try:
+        require_user(request)
+        db_path = request.app.get("db_path")
+        return json_resp({
+            "items": list_enum_snapshots(db_path),
+            "page_enum_status": page_enum("status", db_path),
+            "contract_enum_status": contract_enum("status", db_path),
+        })
+    except ServiceError as exc:
+        return json_resp({"error": exc.message}, exc.status_code)
+
+
+async def api_contract_detail(request: web.Request):
+    try:
+        require_user(request)
+        cid = int(request.match_info["cid"])
+        return json_resp({"contract": get_contract_detail(cid, request.app.get("db_path"))})
+    except ServiceError as exc:
+        return json_resp({"error": exc.message}, exc.status_code)
 
 
 async def api_contracts(request: web.Request):
@@ -155,6 +184,14 @@ async def api_reports(request: web.Request):
     except ServiceError as exc:
         return json_resp({"error": exc.message}, exc.status_code)
     return json_resp({"items": list_reports(request.app.get("db_path"))})
+
+
+async def api_waterline(request: web.Request):
+    try:
+        require_user(request)
+        return json_resp({"waterline": enum_waterline(request.app.get("db_path"))})
+    except ServiceError as exc:
+        return json_resp({"error": exc.message}, exc.status_code)
 
 
 async def api_reconcile(request: web.Request):

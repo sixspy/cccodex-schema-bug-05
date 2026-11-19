@@ -54,6 +54,9 @@ button.ghost { background: transparent; }
   display:inline-block; padding: 0.1rem 0.55rem; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent); font-size: 0.8rem;
 }
+.chip-warn { background: #f6ddd8; color: var(--danger); }
+.card-live { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-soft); }
+pre { white-space: pre-wrap; word-break: break-all; }
 label { display:block; margin: 0.7rem 0; }
 input { width:100%; margin-top: 0.3rem; padding: 0.55rem 0.7rem; border-radius: 10px; border:1px solid var(--line); font: inherit; }
 .row { display:flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
